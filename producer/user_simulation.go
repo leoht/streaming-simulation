@@ -32,14 +32,18 @@ func (us *UserSimulation) Start(userId string, availableEventNames []string) {
 
 func (us *UserSimulation) doStart(userId string, availableEventNames []string) {
 	for {
-		event := NewEvent(userId, "sign_up")
-		event.Validate()
+		signupEvent := NewEvent(userId, "sign_up")
+		signupEvent.Validate()
 
 		// Send first sign up event for a start
-		us.outgoingEvents <- event
+		us.outgoingEvents <- signupEvent
 
 		// Sleep some random time
 		seconds := rand.Intn(5)
 		time.Sleep(time.Duration(seconds) * time.Second)
+
+		// Send other event now
+		event := CreateRandomEvent(userId, availableEventNames)
+		us.outgoingEvents <- event
 	}
 }

@@ -1,6 +1,7 @@
 package producer
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 	"time"
@@ -33,5 +34,37 @@ func TestCreateUserSimulationSendsSignupEvent(t *testing.T) {
 	case <-time.After(1 * time.Second):
 		t.Errorf("Did not receive sign up event from user simulation after 1 second")
 	}
+}
 
+func TestCreateUserSimulationSendsSignupThenOtherEvent(t *testing.T) {
+	userId := "ebb92b43-2113-4947-be5b-69db05928127"
+	simulation := NewUserSimulation(userId)
+	simulation.Start(userId, []string{"sign_in", "view_page"})
+
+	var gotSignup = false
+	var gotOther = false
+
+	select {
+	case event := <-simulation.outgoingEvents:
+		if event.EventName == "sign_up" {
+			gotSignup = true
+		}
+	case <-time.After(1 * time.Second):
+		t.Errorf("Did not receive signup from user simulation after 5 second")
+	}
+
+	select {
+	case event := <-simulation.outgoingEvents:
+		fmt.Println(event)
+		if event.EventName == "sign_in" || event.EventName == "view_page" {
+			gotOther = true
+
+		}
+	case <-time.After(5 * time.Second):
+		t.Errorf("Did not receive other event from user simulation after 5 second")
+	}
+
+	if !(gotSignup && gotOther) {
+		t.Errorf("Did not receive signup or other event: gotSignup = %v, gotOther = %v", gotSignup, gotOther)
+	}
 }
