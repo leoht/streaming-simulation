@@ -1,11 +1,12 @@
 # Streaming simulation
 
 This repository contains code and configuration to deploy a lightweight simulation of data streamed into a Kafka cluster on AWS MSK. It uses:
- - Go
+ - Go (with [Confluent Kafka client](https://github.com/confluentinc/confluent-kafka-go) and [Gin](https://github.com/gin-gonic/gin))
  - PostgreSQL
  - Docker (to run locally)
  - Terraform
  - AWS
+ - React (a small webapp to interact with the simulation)
 
 ## Setup
 
