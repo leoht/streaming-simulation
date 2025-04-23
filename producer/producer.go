@@ -47,10 +47,8 @@ func Start() {
 	fmt.Println("Starting Kafka producer...")
 
 	kafkaProducer, err := kafka.NewProducer(&kafka.ConfigMap{
-		// User-specific properties that you must set
 		"bootstrap.servers": os.Getenv("KAFKA_BOOTSTRAP_SERVER_URL"),
 
-		// Fixed properties
 		"security.protocol": "SASL_SSL",
 		"sasl.mechanisms":   "OAUTHBEARER",
 		"client.id":         "simulation-producer",
