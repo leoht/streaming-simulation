@@ -7,8 +7,8 @@ import (
 )
 
 type UserSimulation struct {
-	running    bool
-	userId     string
+	Running    bool
+	UserId     string
 	sentEvents int
 	lastEvent  *Event
 
@@ -31,22 +31,31 @@ func NewUserSimulation(userId string) UserSimulation {
 // Launches a goroutine which will start emitting events from this user,
 // simulating some traffic activity which some logic to it
 // (e.g signing up must precede signing in, adding an item to cart must precede buying, etc).
-func (us *UserSimulation) Start(userId string, availableEventNames []string) {
-	go us.doStart(userId, availableEventNames)
+func (us *UserSimulation) Start(availableEventNames []string) {
+	go us.doStart(availableEventNames)
 }
 
-func (us *UserSimulation) doStart(userId string, availableEventNames []string) {
-	us.running = true
+func (us *UserSimulation) Stop() {
+	us.stopChannel <- true
+}
+
+func (us *UserSimulation) Resume() {
+	// TODO resume correctly
+	go us.doStart([]string{"sign_in", "view_page"})
+}
+
+func (us *UserSimulation) doStart(availableEventNames []string) {
+	us.Running = true
 
 loop:
 	for {
 		select {
 		case <-us.stopChannel:
-			log.Printf("Stopping simulation for %s", us.userId)
-			us.running = false
+			log.Printf("Stopping simulation for %s", us.UserId)
+			us.Running = false
 			break loop
 		default:
-			signupEvent := NewEvent(userId, "sign_up")
+			signupEvent := NewEvent(us.UserId, "sign_up")
 			signupEvent.Validate()
 
 			// Send first sign up event for a start
@@ -57,7 +66,7 @@ loop:
 			time.Sleep(time.Duration(seconds) * time.Second)
 
 			// Send other event now
-			event := CreateRandomEvent(userId, availableEventNames)
+			event := CreateRandomEvent(us.UserId, availableEventNames)
 			us.outgoingEvents <- event
 		}
 	}

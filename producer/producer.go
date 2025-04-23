@@ -7,10 +7,15 @@ import (
 	"math/rand"
 	"os"
 	"strings"
-	"time"
 
-	"github.com/confluentinc/confluent-kafka-go/kafka"
+	kafka "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
+
+var userSimulations []*UserSimulation = []*UserSimulation{}
+
+func GetSimulations() []*UserSimulation {
+	return userSimulations
+}
 
 // Start random user simulations and record produced events into
 // the PostgresSQL database (TODO)
@@ -46,13 +51,8 @@ func Start() {
 	fmt.Println("Starting user simulation...")
 
 	simulation := NewUserSimulation(userId)
-	simulation.Start(userId, []string{"sign_in", "view_page"})
-
-	// Just to test - send stop signal after 10sec
-	go func() {
-		time.Sleep(time.Duration(10) * time.Second)
-		simulation.stopChannel <- true
-	}()
+	simulation.Start([]string{"sign_in", "view_page"})
+	userSimulations = append(userSimulations, &simulation)
 
 	for {
 		select {
@@ -60,6 +60,28 @@ func Start() {
 			fmt.Printf("Attempting to send %v\n", event)
 		}
 	}
+}
+
+func StopSimulationForUser(userId string) *UserSimulation {
+	for _, simulation := range userSimulations {
+		if simulation.UserId == userId && simulation.Running {
+			simulation.Stop()
+			return simulation
+		}
+	}
+
+	return nil
+}
+
+func ResumeSimulationForUser(userId string) *UserSimulation {
+	for _, simulation := range userSimulations {
+		if simulation.UserId == userId && !simulation.Running {
+			simulation.Resume()
+			return simulation
+		}
+	}
+
+	return nil
 }
 
 func monitorEventsFromKafka(p *kafka.Producer) {

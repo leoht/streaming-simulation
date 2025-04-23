@@ -37,5 +37,25 @@ func main() {
 		})
 	})
 
+	r.PUT("/simulations/:userId/stop", func(c *gin.Context) {
+		userId := c.Param("userId")
+		simulation := producer.StopSimulationForUser(userId)
+		if simulation != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"simulation": JsonUserSimulation{simulation.UserId, simulation.Running},
+			})
+		}
+	})
+
+	r.PUT("/simulations/:userId/resume", func(c *gin.Context) {
+		userId := c.Param("userId")
+		simulation := producer.ResumeSimulationForUser(userId)
+		if simulation != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"simulation": JsonUserSimulation{simulation.UserId, simulation.Running},
+			})
+		}
+	})
+
 	r.Run()
 }

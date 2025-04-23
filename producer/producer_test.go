@@ -23,7 +23,7 @@ func TestCreateEventWithAvailableUserIdsAndEventNames(t *testing.T) {
 func TestCreateUserSimulationSendsSignupEvent(t *testing.T) {
 	userId := "ebb92b43-2113-4947-be5b-69db05928127"
 	simulation := NewUserSimulation(userId)
-	simulation.Start(userId, []string{"sign_up", "sign_in"})
+	simulation.Start([]string{"sign_up", "sign_in"})
 
 	// TODO: better way to do this?
 	select {
@@ -39,7 +39,7 @@ func TestCreateUserSimulationSendsSignupEvent(t *testing.T) {
 func TestCreateUserSimulationSendsSignupThenOtherEvent(t *testing.T) {
 	userId := "ebb92b43-2113-4947-be5b-69db05928127"
 	simulation := NewUserSimulation(userId)
-	simulation.Start(userId, []string{"sign_in", "view_page"})
+	simulation.Start([]string{"sign_in", "view_page"})
 
 	var gotSignup = false
 	var gotOther = false
@@ -72,15 +72,14 @@ func TestCreateUserSimulationSendsSignupThenOtherEvent(t *testing.T) {
 func TestStopUserSimulation(t *testing.T) {
 	userId := "ebb92b43-2113-4947-be5b-69db05928127"
 	simulation := NewUserSimulation(userId)
-	simulation.Start(userId, []string{"sign_in", "view_page"})
+	simulation.Start([]string{"sign_in", "view_page"})
 
 	go func() {
-		time.Sleep(2)
-		simulation.stopChannel <- true
+		simulation.Stop()
 	}()
 
-	time.Sleep(3)
-	if simulation.running {
+	time.Sleep(time.Duration(2) * time.Second)
+	if simulation.Running {
 		t.Errorf("Did not stop simulation")
 	}
 }
