@@ -18,13 +18,21 @@ terraform init
 terraform apply
 ```
 
-## Usage
+## Usage (backend server)
 
-With Docker:
+With Docker (runs the webserver and a local DB):
 
 ```
 docker-compose up
 ```
+
+Without Docker:
+
+```
+go run cmd/web/main.go
+```
+
+Alternatively, run commands (without the web server):
 
 ```
 go run . generate-user-ids
@@ -32,4 +40,11 @@ go run . generate-user-ids
 
 ```
 go run . start
+```
+
+## Start the frontend web UI
+
+```
+cd web/
+npm start
 ```

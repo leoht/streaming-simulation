@@ -2,16 +2,37 @@ package producer
 
 import (
 	"bufio"
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/aws/aws-msk-iam-sasl-signer-go/signer"
 	kafka "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
 
+func createToken() kafka.OAuthBearerToken {
+	token, tokenExpirationTime, err := signer.GenerateAuthToken(context.TODO(), os.Getenv("AWS_REGION"))
+	if err != nil {
+		panic(err)
+	}
+	seconds := tokenExpirationTime / 1000
+	nanoseconds := (tokenExpirationTime % 1000) * 1000000
+	bearerToken := kafka.OAuthBearerToken{
+		TokenValue: token,
+		Expiration: time.Unix(seconds, nanoseconds),
+	}
+
+	return bearerToken
+}
+
+var kafkaProducerInChannel chan Event = make(chan Event)
 var userSimulations []*UserSimulation = []*UserSimulation{}
+var userIds []string
 
 func GetSimulations() []*UserSimulation {
 	return userSimulations
@@ -21,31 +42,55 @@ func GetSimulations() []*UserSimulation {
 // the PostgresSQL database (TODO)
 func Start() {
 
+	userIds = readUserIds()
+
 	fmt.Println("Starting Kafka producer...")
 
 	kafkaProducer, err := kafka.NewProducer(&kafka.ConfigMap{
 		// User-specific properties that you must set
-		"bootstrap.servers": "<BOOTSTRAP SERVERS>",
-		"sasl.username":     "<CLUSTER API KEY>",
-		"sasl.password":     "<CLUSTER API SECRET>",
+		"bootstrap.servers": os.Getenv("KAFKA_BOOTSTRAP_SERVER_URL"),
 
 		// Fixed properties
 		"security.protocol": "SASL_SSL",
-		"sasl.mechanisms":   "PLAIN",
-		"acks":              "all"})
+		"sasl.mechanisms":   "OAUTHBEARER",
+		"client.id":         "simulation-producer",
+		"acks":              "all",
+	})
 
 	if err != nil {
 		fmt.Printf("Failed to create producer: %s", err)
 		os.Exit(1)
 	}
 
+	bearerToken := createToken()
+
+	err = kafkaProducer.SetOAuthBearerToken(bearerToken)
+	if err != nil {
+		panic(err)
+	}
+
 	// Go-routine to handle message delivery reports and
 	// possibly other event types (errors, stats, etc)
 	go monitorEventsFromKafka(kafkaProducer)
 
-	userIds := readUserIds()
+	for {
+		select {
+		case event := <-kafkaProducerInChannel:
+			topic := os.Getenv("TOPIC_NAME")
+			key := event.Id
+			data, _ := json.Marshal(event)
+			kafkaProducer.Produce(&kafka.Message{
+				TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+				Key:            []byte(key),
+				Value:          data,
+			}, nil)
+		}
 
-	// For now let's start just one user simulation.
+	}
+}
+
+// Start a simulation for a user who doesn't have a simulation started yet
+func StartNewSimulation() *UserSimulation {
 	userId := userIds[rand.Intn(len(userIds))]
 
 	fmt.Println("Starting user simulation...")
@@ -54,12 +99,16 @@ func Start() {
 	simulation.Start([]string{"sign_in", "view_page"})
 	userSimulations = append(userSimulations, &simulation)
 
-	for {
-		select {
-		case event := <-simulation.outgoingEvents:
-			fmt.Printf("Attempting to send %v\n", event)
+	go func() {
+		for {
+			select {
+			case event := <-simulation.outgoingEvents:
+				kafkaProducerInChannel <- event
+			}
 		}
-	}
+	}()
+
+	return &simulation
 }
 
 func StopSimulationForUser(userId string) *UserSimulation {

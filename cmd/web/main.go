@@ -1,10 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"leohetsch.com/simulation/producer"
 )
 
@@ -14,9 +16,17 @@ type JsonUserSimulation struct {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	go producer.Start()
 
 	r := gin.Default()
+
+	r.Use(cors.Default())
+
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
@@ -31,7 +41,21 @@ func main() {
 			jsonSimulations = append(jsonSimulations, JsonUserSimulation{s.UserId, s.Running})
 		}
 
-		fmt.Println(simulations)
+		c.JSON(http.StatusOK, gin.H{
+			"simulations": simulations,
+		})
+	})
+
+	// Start a new user simulation
+	r.POST("/simulations", func(c *gin.Context) {
+		producer.StartNewSimulation()
+
+		simulations := producer.GetSimulations()
+		// jsonSimulations := make([]JsonUserSimulation, len(simulations))
+		// for _, s := range simulations {
+		// 	jsonSimulations = append(jsonSimulations, JsonUserSimulation{s.UserId, s.Running})
+		// }
+
 		c.JSON(http.StatusOK, gin.H{
 			"simulations": simulations,
 		})
@@ -40,9 +64,10 @@ func main() {
 	r.PUT("/simulations/:userId/stop", func(c *gin.Context) {
 		userId := c.Param("userId")
 		simulation := producer.StopSimulationForUser(userId)
+		simulations := producer.GetSimulations()
 		if simulation != nil {
 			c.JSON(http.StatusOK, gin.H{
-				"simulation": JsonUserSimulation{simulation.UserId, simulation.Running},
+				"simulations": simulations,
 			})
 		}
 	})
@@ -50,9 +75,10 @@ func main() {
 	r.PUT("/simulations/:userId/resume", func(c *gin.Context) {
 		userId := c.Param("userId")
 		simulation := producer.ResumeSimulationForUser(userId)
+		simulations := producer.GetSimulations()
 		if simulation != nil {
 			c.JSON(http.StatusOK, gin.H{
-				"simulation": JsonUserSimulation{simulation.UserId, simulation.Running},
+				"simulations": simulations,
 			})
 		}
 	})
