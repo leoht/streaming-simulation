@@ -68,3 +68,19 @@ func TestCreateUserSimulationSendsSignupThenOtherEvent(t *testing.T) {
 		t.Errorf("Did not receive signup or other event: gotSignup = %v, gotOther = %v", gotSignup, gotOther)
 	}
 }
+
+func TestStopUserSimulation(t *testing.T) {
+	userId := "ebb92b43-2113-4947-be5b-69db05928127"
+	simulation := NewUserSimulation(userId)
+	simulation.Start(userId, []string{"sign_in", "view_page"})
+
+	go func() {
+		time.Sleep(2)
+		simulation.stopChannel <- true
+	}()
+
+	time.Sleep(3)
+	if simulation.running {
+		t.Errorf("Did not stop simulation")
+	}
+}
