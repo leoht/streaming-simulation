@@ -3,19 +3,35 @@ package producer
 import (
 	"slices"
 	"testing"
+	"time"
 )
 
 func TestCreateEventWithAvailableUserIdsAndEventNames(t *testing.T) {
-	availableIds := []string{"ebb92b43-2113-4947-be5b-69db05928127", "c1986785-1e08-4cbe-878b-b31b61a06ae5", "b7e989bc-7755-4b0a-8647-29cf684e3150", "c5c167cc-9e76-4169-9984-b455130d932e"}
+	userId := "ebb92b43-2113-4947-be5b-69db05928127"
 	availableEventNames := []string{"sign_in", "sign_up"}
 
 	for i := 0; i < 100; i++ {
-		event := CreateRandomEvent(availableIds, availableEventNames)
-		if !slices.Contains(availableIds, event.UserId) {
-			t.Errorf(`Event contains invalid user ID %s`, event.UserId)
-		}
+		event := CreateRandomEvent(userId, availableEventNames)
+
 		if !slices.Contains(availableEventNames, event.EventName) {
 			t.Errorf(`Event contains invalid event name %s`, event.EventName)
 		}
 	}
+}
+
+func TestCreateUserSimulationSendsSignupEvent(t *testing.T) {
+	userId := "ebb92b43-2113-4947-be5b-69db05928127"
+	simulation := NewUserSimulation(userId)
+	simulation.Start(userId, []string{"sign_up", "sign_in"})
+
+	// TODO: better way to do this?
+	select {
+	case event := <-simulation.outgoingEvents:
+		if event.EventName != "sign_up" {
+			t.Errorf("First event received from simulation was not sign_up")
+		}
+	case <-time.After(1 * time.Second):
+		t.Errorf("Did not receive sign up event from user simulation after 1 second")
+	}
+
 }

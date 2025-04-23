@@ -1,28 +1,35 @@
 package producer
 
 import (
+	"bufio"
 	"log"
 	"math/rand"
-
-	"github.com/google/uuid"
+	"os"
+	"strings"
 )
 
-type Event struct {
-	Id        string
-	UserId    string
-	EventName string
-}
+// Start random user simulations and record produced events into
+// the PostgresSQL database (TODO)
+func Start() {
 
-func CreateRandomEvent(availableUserIds []string, availableEventNames []string) Event {
-
-	// Pick random values
-	userId := availableUserIds[rand.Intn(len(availableUserIds))]
-	eventName := availableEventNames[rand.Intn(len(availableEventNames))]
-
-	eventId, err := uuid.NewUUID()
+	contents, err := os.ReadFile("users.txt")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("could not read users.txt ")
 	}
 
-	return Event{eventId.String(), userId, eventName}
+	userIds := splitLines(string(contents))
+
+	// For now let's start just one user simulation.
+	userId := userIds[rand.Intn(len(userIds))]
+	simulation := NewUserSimulation(userId)
+	simulation.Start(userId, []string{"sign_in", "sign_up"})
+}
+
+func splitLines(s string) []string {
+	var lines []string
+	sc := bufio.NewScanner(strings.NewReader(s))
+	for sc.Scan() {
+		lines = append(lines, sc.Text())
+	}
+	return lines
 }
