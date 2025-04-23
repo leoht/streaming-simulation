@@ -1,15 +1,14 @@
 package producer
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
-	"strings"
 	"time"
+
+	"leohetsch.com/simulation/simulation"
 
 	"github.com/aws/aws-msk-iam-sasl-signer-go/signer"
 	kafka "github.com/confluentinc/confluent-kafka-go/v2/kafka"
@@ -30,19 +29,11 @@ func createToken() kafka.OAuthBearerToken {
 	return bearerToken
 }
 
-var kafkaProducerInChannel chan Event = make(chan Event)
-var userSimulations []*UserSimulation = []*UserSimulation{}
 var userIds []string
-
-func GetSimulations() []*UserSimulation {
-	return userSimulations
-}
 
 // Start random user simulations and record produced events into
 // the PostgresSQL database (TODO)
-func Start() {
-
-	userIds = readUserIds()
+func Start(producerInChannel chan simulation.Event) {
 
 	fmt.Println("Starting Kafka producer...")
 
@@ -73,8 +64,9 @@ func Start() {
 
 	for {
 		select {
-		case event := <-kafkaProducerInChannel:
+		case event := <-producerInChannel:
 			topic := os.Getenv("TOPIC_NAME")
+			log.Printf("Attempting to send event to topic for user %s...\n", event.UserId)
 			key := event.Id
 			data, _ := json.Marshal(event)
 			kafkaProducer.Produce(&kafka.Message{
@@ -85,50 +77,6 @@ func Start() {
 		}
 
 	}
-}
-
-// Start a simulation for a user who doesn't have a simulation started yet
-func StartNewSimulation() *UserSimulation {
-	userId := userIds[rand.Intn(len(userIds))]
-
-	fmt.Println("Starting user simulation...")
-
-	simulation := NewUserSimulation(userId)
-	simulation.Start([]string{"sign_in", "view_page"})
-	userSimulations = append(userSimulations, &simulation)
-
-	go func() {
-		for {
-			select {
-			case event := <-simulation.outgoingEvents:
-				kafkaProducerInChannel <- event
-			}
-		}
-	}()
-
-	return &simulation
-}
-
-func StopSimulationForUser(userId string) *UserSimulation {
-	for _, simulation := range userSimulations {
-		if simulation.UserId == userId && simulation.Running {
-			simulation.Stop()
-			return simulation
-		}
-	}
-
-	return nil
-}
-
-func ResumeSimulationForUser(userId string) *UserSimulation {
-	for _, simulation := range userSimulations {
-		if simulation.UserId == userId && !simulation.Running {
-			simulation.Resume()
-			return simulation
-		}
-	}
-
-	return nil
 }
 
 func monitorEventsFromKafka(p *kafka.Producer) {
@@ -143,22 +91,4 @@ func monitorEventsFromKafka(p *kafka.Producer) {
 			}
 		}
 	}
-}
-
-func readUserIds() []string {
-	contents, err := os.ReadFile("users.txt")
-	if err != nil {
-		log.Fatal("could not read users.txt ")
-	}
-
-	return splitLines(string(contents))
-}
-
-func splitLines(s string) []string {
-	var lines []string
-	sc := bufio.NewScanner(strings.NewReader(s))
-	for sc.Scan() {
-		lines = append(lines, sc.Text())
-	}
-	return lines
 }

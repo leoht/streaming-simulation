@@ -2,6 +2,8 @@ module leohetsch.com/simulation
 
 go 1.24.2
 
+replace leohetsch.com/simulation/simulation => ./simulation
+
 replace leohetsch.com/simulation/producer => ./producer
 
 replace leohetsch.com/simulation/consumer => ./consumer

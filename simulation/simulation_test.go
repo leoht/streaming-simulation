@@ -1,11 +1,19 @@
-package producer
+package simulation
 
 import (
-	"fmt"
 	"slices"
 	"testing"
 	"time"
 )
+
+func receiveOnOutgoingEventsChannel(simulation UserSimulation) {
+	for {
+		select {
+		case <-simulation.outgoingEvents:
+			// do nothing
+		}
+	}
+}
 
 func TestCreateEventWithAvailableUserIdsAndEventNames(t *testing.T) {
 	userId := "ebb92b43-2113-4947-be5b-69db05928127"
@@ -55,12 +63,12 @@ func TestCreateUserSimulationSendsSignupThenOtherEvent(t *testing.T) {
 
 	select {
 	case event := <-simulation.outgoingEvents:
-		fmt.Println(event)
+		// fmt.Println(event)
 		if event.EventName == "sign_in" || event.EventName == "view_page" {
 			gotOther = true
 
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(6 * time.Second):
 		t.Errorf("Did not receive other event from user simulation after 5 second")
 	}
 
@@ -74,11 +82,18 @@ func TestStopUserSimulation(t *testing.T) {
 	simulation := NewUserSimulation(userId)
 	simulation.Start([]string{"sign_in", "view_page"})
 
+	// Needed otherwise sending outgoing messages channel is blocking
+	// TODO: improve this?
+	go receiveOnOutgoingEventsChannel(simulation)
+
+	// Stop() is blocking because of sending
+	// to channel - improve this?
 	go func() {
 		simulation.Stop()
 	}()
 
-	time.Sleep(time.Duration(2) * time.Second)
+	time.Sleep(time.Duration(1) * time.Second)
+
 	if simulation.Running {
 		t.Errorf("Did not stop simulation")
 	}

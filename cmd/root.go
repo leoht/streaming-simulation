@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
-	"leohetsch.com/simulation/producer"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -39,7 +38,7 @@ to quickly create a Cobra application.`,
 			fmt.Println("Saved list of generated user ids into users.txt")
 		}
 		if args[0] == "start" {
-			producer.Start()
+			// producer.Start()
 		}
 	},
 }
