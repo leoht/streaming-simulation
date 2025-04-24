@@ -49,3 +49,15 @@ go run . start
 cd web/
 npm start
 ```
+
+## Overall architecture
+
+![](./arc-diagram.png)
+
+## Implementation choices
+
+* The main module is independent of the Kafka producer logic – it communicates any generated events using a channel. In theory this means the project is easy to adapt to a different data layer than Kafka, for example by just saving everything into a DB.
+
+* The semi-random 'user' activity is implemented with a finite state machine [using the fsm library](https://github.com/looplab/fsm). The event data is generated according to the event name and historic events for a given 'user'
+
+* The frontend communicates with the HTTP API (implemented with Gin) over REST endpoints to interact with the simulation, e.g to add/stop/resume 'users' activity.
