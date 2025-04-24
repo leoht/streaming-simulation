@@ -31,7 +31,7 @@ func TestCreateEventWithAvailableUserIdsAndEventNames(t *testing.T) {
 func TestCreateUserSimulationSendsSignupEvent(t *testing.T) {
 	userId := "ebb92b43-2113-4947-be5b-69db05928127"
 	simulation := NewUserSimulation(userId)
-	simulation.Start([]string{"sign_up", "sign_in"})
+	simulation.Start()
 
 	// TODO: better way to do this?
 	select {
@@ -47,7 +47,7 @@ func TestCreateUserSimulationSendsSignupEvent(t *testing.T) {
 func TestCreateUserSimulationSendsSignupThenOtherEvent(t *testing.T) {
 	userId := "ebb92b43-2113-4947-be5b-69db05928127"
 	simulation := NewUserSimulation(userId)
-	simulation.Start([]string{"sign_in", "view_page"})
+	simulation.Start()
 
 	var gotSignup = false
 	var gotOther = false
@@ -80,7 +80,7 @@ func TestCreateUserSimulationSendsSignupThenOtherEvent(t *testing.T) {
 func TestStopUserSimulation(t *testing.T) {
 	userId := "ebb92b43-2113-4947-be5b-69db05928127"
 	simulation := NewUserSimulation(userId)
-	simulation.Start([]string{"sign_in", "view_page"})
+	simulation.Start()
 
 	// Needed otherwise sending outgoing messages channel is blocking
 	// TODO: improve this?

@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -19,35 +16,15 @@ type JsonUserSimulation struct {
 	Running bool   `json:"running"`
 }
 
-func readUserIds() []string {
-	contents, err := os.ReadFile("users.txt")
-	if err != nil {
-		log.Fatal("could not read users.txt ")
-	}
-
-	return splitLines(string(contents))
-}
-
-func splitLines(s string) []string {
-	var lines []string
-	sc := bufio.NewScanner(strings.NewReader(s))
-	for sc.Scan() {
-		lines = append(lines, sc.Text())
-	}
-	return lines
-}
-
 func main() {
 	err := godotenv.Load()
-	userIds := readUserIds()
-	producerInChannel := make(chan simulation.Event)
 
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	simulation.StartSimulation()
-	go producer.Start(producerInChannel)
+	sim := simulation.StartSimulation()
+	go producer.Start(sim.ProducerChannel())
 
 	r := gin.Default()
 
@@ -61,7 +38,7 @@ func main() {
 
 	// Returns a list of current user simulations
 	r.GET("/simulations", func(c *gin.Context) {
-		simulations := simulation.GetSimulations()
+		simulations := simulation.GetAllUserSimulations()
 		jsonSimulations := make([]JsonUserSimulation, len(simulations))
 		for _, s := range simulations {
 			jsonSimulations = append(jsonSimulations, JsonUserSimulation{s.UserId, s.Running})
@@ -74,9 +51,9 @@ func main() {
 
 	// Start a new user simulation
 	r.POST("/simulations", func(c *gin.Context) {
-		simulation.StartNewSimulation(userIds, producerInChannel)
+		simulation.StartNewUserSimulation()
 
-		simulations := simulation.GetSimulations()
+		simulations := simulation.GetAllUserSimulations()
 		// jsonSimulations := make([]JsonUserSimulation, len(simulations))
 		// for _, s := range simulations {
 		// 	jsonSimulations = append(jsonSimulations, JsonUserSimulation{s.UserId, s.Running})
@@ -90,7 +67,7 @@ func main() {
 	r.PUT("/simulations/:userId/stop", func(c *gin.Context) {
 		userId := c.Param("userId")
 		sim := simulation.StopSimulationForUser(userId)
-		allSimulations := simulation.GetSimulations()
+		allSimulations := simulation.GetAllUserSimulations()
 		if sim != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"simulations": allSimulations,
@@ -101,7 +78,7 @@ func main() {
 	r.PUT("/simulations/:userId/resume", func(c *gin.Context) {
 		userId := c.Param("userId")
 		sim := simulation.ResumeSimulationForUser(userId)
-		allSimulations := simulation.GetSimulations()
+		allSimulations := simulation.GetAllUserSimulations()
 		if sim != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"simulations": allSimulations,

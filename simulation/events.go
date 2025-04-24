@@ -26,10 +26,8 @@ func NewEvent(userId string, eventName string) Event {
 	}
 }
 
-func CreateRandomEvent(userId string, availableEventNames []string) Event {
-
-	// Pick random values
-	eventName := availableEventNames[rand.Intn(len(availableEventNames))]
+func CreateRandomEvent(userId string, possibleEvents []string) Event {
+	eventName := possibleEvents[rand.Intn(len(possibleEvents))]
 
 	eventId, err := uuid.NewUUID()
 	if err != nil {
@@ -37,8 +35,4 @@ func CreateRandomEvent(userId string, availableEventNames []string) Event {
 	}
 
 	return Event{eventId.String(), userId, eventName}
-}
-
-func (e Event) Validate() {
-	// TODO: Validate event or log warning?
 }

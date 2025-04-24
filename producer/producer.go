@@ -66,7 +66,7 @@ func Start(producerInChannel chan simulation.Event) {
 		select {
 		case event := <-producerInChannel:
 			topic := os.Getenv("TOPIC_NAME")
-			log.Printf("Attempting to send event to topic for user %s...\n", event.UserId)
+			log.Printf("Attempting to send %s to topic for user %s...\n", event.EventName, event.UserId)
 			key := event.Id
 			data, _ := json.Marshal(event)
 			kafkaProducer.Produce(&kafka.Message{

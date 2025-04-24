@@ -22,14 +22,15 @@ func NewUserState(userId string) *UserState {
 	// State machine diagram:
 	// (simple for now)
 	//
-	// signed_up -> signed_in -> viewed_page -> added_to_cart -> ordered
+	// signed_up -> signed_in -> viewed_page -> added_to_cart -> signed_in
 	state.FSM = fsm.NewFSM(
-		"signed_up",
+		"new",
 		fsm.Events{
+			{Name: "sign_up", Src: []string{"new"}, Dst: "signed_up"},
 			{Name: "sign_in", Src: []string{"signed_up"}, Dst: "signed_in"},
-			{Name: "view_page", Src: []string{"signed_in"}, Dst: "viewed_page"},
+			{Name: "view_page", Src: []string{"signed_in", "added_to_cart"}, Dst: "viewed_page"},
 			{Name: "add_to_cart", Src: []string{"viewed_page"}, Dst: "added_to_cart"},
-			{Name: "order", Src: []string{"added_to_cart"}, Dst: "ordered"},
+			{Name: "order", Src: []string{"added_to_cart"}, Dst: "signed_in"},
 		},
 		fsm.Callbacks{
 			// "enter_state": func(_ context.Context, e *fsm.Event) { state.enterState(e) },
