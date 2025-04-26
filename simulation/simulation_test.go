@@ -8,10 +8,7 @@ import (
 
 func receiveOnOutgoingEventsChannel(simulation UserSimulation) {
 	for {
-		select {
-		case <-simulation.outgoingEvents:
-			// do nothing
-		}
+		<-simulation.outgoingEvents
 	}
 }
 

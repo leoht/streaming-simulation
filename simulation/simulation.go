@@ -18,7 +18,9 @@ import (
 
 type Simulation struct {
 	availableUserIds []string
-	userSimulations  []*UserSimulation
+
+	// TODO: replace with a map UserId -> Sim for easier access by UserId
+	userSimulations []*UserSimulation
 	// Buffered channel to forward events to producer
 	producerChannel chan Event
 }
@@ -39,7 +41,7 @@ func StartSimulation() *Simulation {
 	return currentSimulation
 }
 
-func GetAllUserSimulations() []*UserSimulation {
+func AllUserSimulations() []*UserSimulation {
 	return currentSimulation.userSimulations
 }
 

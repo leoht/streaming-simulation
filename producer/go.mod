@@ -2,9 +2,17 @@ module leohetsch.com/simulation/producer
 
 go 1.24.2
 
+replace leohetsch.com/simulation/simulation => ../simulation
+
 require (
 	github.com/aws/aws-msk-iam-sasl-signer-go v1.0.1
-	github.com/google/uuid v1.6.0
+	github.com/magiconair/properties v1.8.6
+	leohetsch.com/simulation/simulation v0.0.0-00010101000000-000000000000
+)
+
+require (
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/looplab/fsm v1.0.2 // indirect
 )
 
 require (

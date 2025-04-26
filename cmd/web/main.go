@@ -1,9 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	kafka "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -23,8 +26,25 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
+	fmt.Println("Starting Kafka producer...")
+
+	kafkaProducer, err := kafka.NewProducer(&kafka.ConfigMap{
+		"bootstrap.servers": os.Getenv("KAFKA_BOOTSTRAP_SERVER_URL"),
+
+		"security.protocol": "SASL_SSL",
+		"sasl.mechanisms":   "OAUTHBEARER",
+		"client.id":         "simulation-producer",
+		"acks":              "all",
+	})
+
+	if err != nil {
+		fmt.Printf("Failed to create producer: %s", err)
+		os.Exit(1)
+	}
+
 	sim := simulation.StartSimulation()
-	go producer.Start(sim.ProducerChannel())
+	client := producer.NewKafkaClient(os.Getenv("TOPIC_NAME"), kafkaProducer)
+	go client.Start(sim.ProducerChannel())
 
 	r := gin.Default()
 
@@ -38,7 +58,7 @@ func main() {
 
 	// Returns a list of current user simulations
 	r.GET("/simulations", func(c *gin.Context) {
-		simulations := simulation.GetAllUserSimulations()
+		simulations := simulation.AllUserSimulations()
 		jsonSimulations := make([]JsonUserSimulation, len(simulations))
 		for _, s := range simulations {
 			jsonSimulations = append(jsonSimulations, JsonUserSimulation{s.UserId, s.Running})
@@ -53,7 +73,7 @@ func main() {
 	r.POST("/simulations", func(c *gin.Context) {
 		simulation.StartNewUserSimulation()
 
-		simulations := simulation.GetAllUserSimulations()
+		simulations := simulation.AllUserSimulations()
 		// jsonSimulations := make([]JsonUserSimulation, len(simulations))
 		// for _, s := range simulations {
 		// 	jsonSimulations = append(jsonSimulations, JsonUserSimulation{s.UserId, s.Running})
@@ -67,7 +87,7 @@ func main() {
 	r.PUT("/simulations/:userId/stop", func(c *gin.Context) {
 		userId := c.Param("userId")
 		sim := simulation.StopSimulationForUser(userId)
-		allSimulations := simulation.GetAllUserSimulations()
+		allSimulations := simulation.AllUserSimulations()
 		if sim != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"simulations": allSimulations,
@@ -78,7 +98,7 @@ func main() {
 	r.PUT("/simulations/:userId/resume", func(c *gin.Context) {
 		userId := c.Param("userId")
 		sim := simulation.ResumeSimulationForUser(userId)
-		allSimulations := simulation.GetAllUserSimulations()
+		allSimulations := simulation.AllUserSimulations()
 		if sim != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"simulations": allSimulations,
