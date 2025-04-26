@@ -9,7 +9,7 @@ import (
 	kafka "github.com/confluentinc/confluent-kafka-go/v2/kafka"
 )
 
-func createToken() kafka.OAuthBearerToken {
+func CreateToken() kafka.OAuthBearerToken {
 	token, tokenExpirationTime, err := signer.GenerateAuthToken(context.TODO(), os.Getenv("AWS_REGION"))
 	if err != nil {
 		panic(err)

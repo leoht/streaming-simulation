@@ -28,10 +28,6 @@ func (p *MockProducer) Produce(msg *kafka.Message, deliveryChan chan kafka.Event
 	return nil
 }
 
-func (p MockProducer) SetOAuthBearerToken(kafka kafka.OAuthBearerToken) error {
-	return nil
-}
-
 func (p MockProducer) Events() chan kafka.Event {
 	return p.outEventsChannel
 }

@@ -19,16 +19,10 @@ type KafkaClient struct {
 
 type KafkaProducer interface {
 	Produce(msg *kafka.Message, deliveryChan chan kafka.Event) error
-	SetOAuthBearerToken(token kafka.OAuthBearerToken) error
 	Events() chan kafka.Event
 }
 
 func NewKafkaClient(topicName string, kafkaProducer KafkaProducer) KafkaClient {
-	bearerToken := createToken()
-	err := kafkaProducer.SetOAuthBearerToken(bearerToken)
-	if err != nil {
-		panic(err)
-	}
 
 	return KafkaClient{topicName, kafkaProducer}
 }

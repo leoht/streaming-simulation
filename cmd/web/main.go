@@ -42,6 +42,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	bearerToken := producer.CreateToken()
+	err = kafkaProducer.SetOAuthBearerToken(bearerToken)
+	if err != nil {
+		panic(err)
+	}
+
 	sim := simulation.StartSimulation()
 	client := producer.NewKafkaClient(os.Getenv("TOPIC_NAME"), kafkaProducer)
 	go client.Start(sim.ProducerChannel())
