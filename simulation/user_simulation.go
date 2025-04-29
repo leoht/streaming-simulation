@@ -90,7 +90,7 @@ func (us *UserSimulation) Stop() {
 }
 
 func (us *UserSimulation) Resume() {
-	// TODO resume correctly?
+	us.Running = true
 	go us.doLoop()
 }
 

@@ -95,3 +95,35 @@ func TestStopUserSimulation(t *testing.T) {
 		t.Errorf("Did not stop simulation")
 	}
 }
+
+func TestStopAndResumeUserSimulation(t *testing.T) {
+	userId := "ebb92b43-2113-4947-be5b-69db05928127"
+	simulation := NewUserSimulation(userId)
+	simulation.Start()
+
+	// Needed otherwise sending outgoing messages channel is blocking
+	// TODO: improve this?
+	go receiveOnOutgoingEventsChannel(simulation)
+
+	// Stop() is blocking because of sending
+	// to channel - improve this?
+	go func() {
+		simulation.Stop()
+	}()
+
+	time.Sleep(time.Duration(100) * time.Millisecond)
+
+	if simulation.Running {
+		t.Errorf("Did not stop simulation")
+	}
+
+	go func() {
+		simulation.Resume()
+	}()
+
+	time.Sleep(time.Duration(100) * time.Millisecond)
+
+	if !simulation.Running {
+		t.Errorf("Did not resume simulation")
+	}
+}
